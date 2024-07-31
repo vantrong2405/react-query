@@ -1,6 +1,6 @@
 import { deleteStudent, getStudent, getStudents } from 'apis/students.api'
 import { Fragment } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useQueryString } from 'utils/utils'
 import classNames from 'classnames'
@@ -8,19 +8,6 @@ import { toast } from 'react-toastify'
 
 const LIMIT = 10
 export default function Students() {
-  // const [students, setStudents] = useState<StudentsType>([])
-  // const [isLoading, setIsLoading] = useState<boolean>(false)
-
-  // useEffect(() => {
-  //   setIsLoading(true)
-  //   getStudents(1, 10)
-  //     .then((res) => {
-  //       setStudents(res.data)
-  //     })
-  //     .finally(() => {
-  //       setIsLoading(false)
-  //     })
-  // }, [])
   const queryClient = useQueryClient()
   const queryString: { page?: string } = useQueryString()
   const page = Number(queryString.page) || 1
@@ -39,66 +26,33 @@ export default function Students() {
   })
 
   const deleteStudentMutation = useMutation({
-    mutationFn: (id: number | string) => deleteStudent(id),
-    onSuccess: (_, id) => {
-      toast.success(`Xóa thành công student với id là ${id}`)
-      queryClient.invalidateQueries({ queryKey: ['students', page], exact: true })
-    }
+    mutationFn: (id: string | number) => deleteStudent(id),
+    onSuccess: (() => {
+      queryClient.invalidateQueries({ queryKey: ['students', page], exact: true })//   update UI 
+      toast.success('Delete thành công')
+    })
   })
 
-  const totalStudentsCount = Number(studentsQuery.data?.headers['x-total-count'] || 0)
-  const totalPage = Math.ceil(totalStudentsCount / LIMIT)
-
-  const handleDelete = (id: number) => {
-    deleteStudentMutation.mutate(id)
+  const handleDelete = async (id: number | string) => {
+    try {
+      await deleteStudentMutation.mutateAsync(id as string | number)
+    } catch (error) {
+      console.log(error);
+    }
   }
 
   const handlePrefetchStudent = (id: number) => {
-    // queryClient.prefetchQuery(['student', String(id)], {
-    //   queryFn: () => getStudent(id),
-    //   staleTime: 10 * 1000
-    // })
-  }
-
-  const fetchStudent = (second: number) => {
-    const id = '6'
-    queryClient.prefetchQuery(['student', id], {
+    queryClient.prefetchQuery({
+      queryKey: ['student', id],
       queryFn: () => getStudent(id),
-      staleTime: second * 1000
+      staleTime: 1000 * 10
     })
   }
-
-  const refetchStudents = () => {
-    studentsQuery.refetch()
-  }
-
-  const cancelRequestStudents = () => {
-    queryClient.cancelQueries({ queryKey: ['students', page] })
-  }
-
+  const totalStudentsCount = Number(studentsQuery.data?.headers['x-total-count'] || 0)
+  const totalPage = Math.ceil(totalStudentsCount / LIMIT)
   return (
     <div>
       <h1 className='text-lg'>Students</h1>
-      <div>
-        <button className='mt-6 rounded bg-blue-500 px-5 py-2 text-white' onClick={() => fetchStudent(10)}>
-          Click 10s
-        </button>
-      </div>
-      <div>
-        <button className='mt-6 rounded bg-blue-500 px-5 py-2 text-white' onClick={() => fetchStudent(2)}>
-          Click 2s
-        </button>
-      </div>
-      <div>
-        <button className='mt-6 rounded bg-pink-700 px-5 py-2 text-white' onClick={refetchStudents}>
-          Refetch Students
-        </button>
-      </div>
-      <div>
-        <button className='mt-6 rounded bg-pink-700 px-5 py-2 text-white' onClick={cancelRequestStudents}>
-          Cancel Request Students
-        </button>
-      </div>
       <div className='mt-6'>
         <Link
           to='/students/add'
@@ -171,12 +125,7 @@ export default function Students() {
                       >
                         Edit
                       </Link>
-                      <button
-                        className='font-medium text-red-600 dark:text-red-500'
-                        onClick={() => handleDelete(student.id)}
-                      >
-                        Delete
-                      </button>
+                      <button className='font-medium text-red-600 dark:text-red-500' onClick={() => handleDelete(student.id)}>Delete</button>
                     </td>
                   </tr>
                 ))}

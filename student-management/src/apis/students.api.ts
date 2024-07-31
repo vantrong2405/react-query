@@ -10,10 +10,7 @@ export const getStudents = (page: number | string, limit: number | string, signa
     signal
   })
 
-export const getStudent = (id: number | string) => http.get<Student>(`students/${id}`)
-
-export const addStudent = (student: Omit<Student, 'id'>) => http.post<Student>('/students', student)
-
-export const updateStudent = (id: number | string, student: Student) => http.put<Student>(`students/${id}`, student)
-
-export const deleteStudent = (id: number | string) => http.delete<{}>(`students/${id}`)
+export const getStudent = (id: string | number) => http.get<Student>(`students/${id}`)
+export const addStudent = (body: Omit<Student, 'id'>) => http.post<Student>('students', body)
+export const editStudent = (id: string | number, body: Omit<Student, 'id'>) => http.put<Student>(`students/${id}`, body)
+export const deleteStudent = (id: string | number) => http.delete<{}>(`students/${id}`)
